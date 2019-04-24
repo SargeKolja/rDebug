@@ -3,7 +3,7 @@
 /**
  * Project "rDebug"
  *
- * rDebug.h
+ * rDebugLevel.h
  * 
  * Loving qDebug? But missing some things? 
  * Just want to see your debugs/logs in a QtWidget, like QListView? 
