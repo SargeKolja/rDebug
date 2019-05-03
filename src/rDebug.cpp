@@ -685,7 +685,7 @@ rDebugBase&rDebugBase::operator<<(const QSize& d)
 rDebugBase&rDebugBase::operator<<(const QRect& d)
 {
 #if !defined( QT_NO_DEBUG_OUTPUT )
-  mMsgStream << "@((" << d.width() << "," << d.height() << ")+(" << d.x() << "," << d.y() << "))";
+  mMsgStream << "QRect(" << d.x() << "," << d.y() << " " << d.width() << "x" << d.height() << ")";
 #endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
