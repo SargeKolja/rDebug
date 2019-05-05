@@ -38,23 +38,40 @@
 
 #include "rDebugLevel.h"
 
+
+
 void to_xDebug( rDebugLevel::rMsgType Level, const QString& msg )
 {
   switch(Level)
   {
-    case rDebugLevel::rMsgType::Emergency    : qFatal( msg.toLocal8Bit().constData() ); //break;
-    case rDebugLevel::rMsgType::Alert        :
-    case rDebugLevel::rMsgType::Critical     :
-    case rDebugLevel::rMsgType::Error        : qCritical( msg.toLocal8Bit().constData() ); break;
-    case rDebugLevel::rMsgType::Warning      : qWarning( msg.toLocal8Bit().constData() ); break;
-    case rDebugLevel::rMsgType::Notice       :
-    case rDebugLevel::rMsgType::Informational:
-    case rDebugLevel::rMsgType::Debug        : qDebug().noquote() << msg; break;
+    case rDebugLevel::rMsgType::Emergency    : /*0*/
+    case rDebugLevel::rMsgType::Alert        : /*1*/ qFatal( msg.toLocal8Bit().constData() ); //break; Will ans shall break the app via abort()
+    case rDebugLevel::rMsgType::Critical     : /*2*/
+    case rDebugLevel::rMsgType::Error        : /*3*/ qCritical( msg.toLocal8Bit().constData() ); break;
+#if !defined( QT_NO_WARNING_OUTPUT ) // suppression of WARNING and HIGHER
+    case rDebugLevel::rMsgType::Warning      : /*4*/ qWarning( msg.toLocal8Bit().constData() ); break;
+    case rDebugLevel::rMsgType::Notice       : /*5*/ qDebug().noquote() << msg; break;
+# if !defined( QT_NO_INFO_OUTPUT ) // suppression of INFO and HIGHER
+    case rDebugLevel::rMsgType::Informational: /*6*/ qDebug().noquote() << msg; break;
+# if !defined( QT_NO_DEBUG_OUTPUT ) // suppression of DEBUG (and higher, but there is no higher)
+#  if !defined( QT_NO_DEBUG ) // in release builds, we always suppress DEBUG type messages
+    case rDebugLevel::rMsgType::Debug        : /*7*/ qDebug().noquote() << msg; break;
+#  endif // !defined( QT_NO_DEBUG ) // in release builds, we always suppress DEBUG type messages
+# endif // !defined( QT_NO_DEBUG_OUTPUT ) // suppression of DEBUG (and higher, but there is no higher)
+# endif // !defined( QT_NO_INFO_OUTPUT ) // suppression of INFO and HIGHER
+#endif //!defined( QT_NO_WARNING_OUTPUT ) // suppression of WARNING and HIGHER
     default                                  : break;
   }
+
+# if defined( QT_FATAL_WARNINGS )
+  if( Level <= rDebugLevel::rMsgType::Warning )
+  {  std::abort();  // abort Critical, Error, Warning to fail early
+  }
+# endif
 }
 
-#include "rDebug.h" // this MUST be after the implemnentation of to_xDebug, to use the overloaded Macros there
+
+#include "rDebug.h" // this __MUST__ be after the implementation of to_xDebug, to use the overloaded Macros there
 
 
 #ifndef SYSLOG_FACILITY
@@ -68,6 +85,25 @@ void to_xDebug( rDebugLevel::rMsgType Level, const QString& msg )
 #ifndef SYSLOG_WITH_NUMERIC_8DIGITS_ID
 #define SYSLOG_WITH_NUMERIC_8DIGITS_ID true
 #endif
+/* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+
+static bool SkipOutputByPreprocessor( rDebugLevel::rMsgType Level )
+{
+#   if defined( QT_NO_WARNING_OUTPUT ) // suppression of WARNING and HIGHER
+    if( Level >= rDebugLevel::rMsgType::Warning ) return true;
+#   endif
+#   if defined( QT_NO_INFO_OUTPUT ) // suppression of INFO and HIGHER
+    if( Level >= rDebugLevel::rMsgType::Informational ) return true;
+#   endif
+
+#   if defined( QT_NO_DEBUG_OUTPUT )
+#   if defined( QT_NO_DEBUG ) // in release builds, we always suppress DEBUG type messages
+    if( Level >= rDebugLevel::rMsgType::Debug ) return true;
+#   endif
+#   endif
+    return false;
+}
+
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 rDebugLevel::rMsgType rDebug_GlobalLevel::mMaxLevel = SYSLOG_LEVEL_MAX;
@@ -123,6 +159,7 @@ void rDebug_Signaller::signal_line( const FileLineFunc_t& CodeLocation, const QD
     emit sig_logline( CodeLocation, Time, lvl, LogId, line );
   }
 }
+
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
@@ -192,20 +229,26 @@ void rDebug_Filewriter::enableCodeLocations( bool enable )
 
 void rDebug_Filewriter::write_file(const FileLineFunc_t& CodeLocation, const QDateTime& Time, rDebugLevel::rMsgType Level, uint64_t LogId, const QString& line)
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   if( rDebug_Filewriter::mMaxLevel < Level )
+    return;
+  if( SkipOutputByPreprocessor( Level ) )
     return;
 
   rotate_ondemand();
 
   write_file_raw( CodeLocation, Time, Level, LogId, line );
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
 }
 
 
+/* ToDo:
+ * support QT_MESSAGE_PATTERN environment variable.
+ * For example: QT_MESSAGE_PATTERN="[%{type}] %{appname} (%{file}:%{line}) - %{message}"
+ */
 void rDebug_Filewriter::write_file_raw(const FileLineFunc_t& CodeLocation, const QDateTime& Time, rDebugLevel::rMsgType Level, uint64_t LogId, const QString& line)
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
+  if( SkipOutputByPreprocessor( Level ) )
+    return;
+
   QTextStream WholeMsg( mpLogfile );
   WholeMsg << QString("%1 [%2] %3, %4") \
                   .arg( rDebugBase::getDateTimeStr( Time ) ) \
@@ -223,7 +266,6 @@ void rDebug_Filewriter::write_file_raw(const FileLineFunc_t& CodeLocation, const
   }
   WholeMsg << QString("\n");
   WholeMsg.flush();
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
 }
 
 
@@ -334,24 +376,32 @@ rDebugBase::rDebugBase(const char *file, int line, const char* func, rDebugLevel
 
 rDebugBase::~rDebugBase()
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
+  if( SkipOutputByPreprocessor( mLevel ) )
+    return;
+
   output( mLevel );
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
 }
 
 
 
 void rDebugBase::output( rDebugLevel::rMsgType currLevel )
 {
-  QSignalBackendWriter( currLevel );
-  QDebugBackendWriter( currLevel );
-  QFileBackendWriter( currLevel );
+  QSignalBackendWriter(currLevel );
+  QFileBackendWriter(  currLevel );
+  QDebugBackendWriter( currLevel ); // always need to be the last, because this one has the right of calling std::abort(), so the others need to be finished before
 }
 
+
+/* ToDo:
+ * support QT_MESSAGE_PATTERN environment variable.
+ * For example: QT_MESSAGE_PATTERN="[%{type}] %{appname} (%{file}:%{line}) - %{message}"
+ */
 void rDebugBase::QDebugBackendWriter( rDebugLevel::rMsgType currLevel )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   if( rDebug_GlobalLevel::get() < currLevel )
+    return;
+
+  if( SkipOutputByPreprocessor( currLevel ) )
     return;
 
   QString     mStringDevice("");
@@ -371,33 +421,32 @@ void rDebugBase::QDebugBackendWriter( rDebugLevel::rMsgType currLevel )
   WholeMsg.flush();
 
   to_xDebug( mLevel, mStringDevice );
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
 }
 
 
 void rDebugBase::QSignalBackendWriter( rDebugLevel::rMsgType currLevel )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   if( rDebug_GlobalLevel::get() < currLevel )
+    return;
+  if( SkipOutputByPreprocessor( currLevel ) )
     return;
 
   if( rDebug_Signaller::pSignaller )
   {   rDebug_Signaller::pSignaller->signal_line( mFileLineFunc, mTime, mLevel, mLogId, mMsgBuffer );
   }
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
 }
 
 
 void rDebugBase::QFileBackendWriter( rDebugLevel::rMsgType currLevel )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   if( rDebug_GlobalLevel::get() < currLevel )
+    return;
+  if( SkipOutputByPreprocessor( currLevel ) )
     return;
 
   if( rDebug_Filewriter::pFilewriter )
   {   rDebug_Filewriter::pFilewriter->write_file( mFileLineFunc, mTime, mLevel, mLogId, mMsgBuffer );
   }
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
 }
 
 
@@ -480,213 +529,167 @@ rDebugBase& rDebugBase::integerBase( int base )
 
 rDebugBase& rDebugBase::operator<<( QChar ch )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << ch;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( bool flg )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << ((flg) ? "true" : "false");
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( char ch )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << ch;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( signed short num )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << num;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( unsigned short num )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << num;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( signed int num )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << num;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( unsigned int num )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << num;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( signed long lnum )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << lnum;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( unsigned long lnum )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << lnum;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( qint64 i64 )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << i64;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( quint64 i64 )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << i64;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( float flt )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << flt;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( double dbl )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << dbl;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( const char * ptr )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << ((ptr)?ptr:"(nullptr)");
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( const QString & str )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << str;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( const QStringRef & str )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << str;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( const QLatin1String & str )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << str;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( const QByteArray & ba )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << ba;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase& rDebugBase::operator<<( const void * vptr )
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << "0x" << hex << vptr;
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 rDebugBase& rDebugBase::operator<<(const QTextStream& qts)
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << qts.string();
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 rDebugBase&rDebugBase::operator<<(const QPoint& d)
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << "@(" << d.x() << "," << d.y() << ")";
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase&rDebugBase::operator<<(const QSize& d)
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << "@(" << d.width() << "x" << d.height() << ")";
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 
 
 rDebugBase&rDebugBase::operator<<(const QRect& d)
 {
-#if !defined( QT_NO_DEBUG_OUTPUT )
   mMsgStream << "QRect(" << d.x() << "," << d.y() << " " << d.width() << "x" << d.height() << ")";
-#endif //!defined( QT_NO_DEBUG_OUTPUT )
   return *this;
 }
 

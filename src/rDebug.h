@@ -43,7 +43,6 @@
 #include "rDebugLevel.h"
 #include "rDebugCodeloc.h"
 
-// do nothing if QT_NO_DEBUG_OUTPUT is defined
 
 #ifdef qDebug
 // -- for reference: what is Qt4 doing here?
@@ -67,18 +66,19 @@
 # define qWarning   rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).warning
 # define qCritical  rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).critical
 # define qSystem    rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).error
-# define qFatal     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).fatal
+# define qFatal     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).fatal  // break down application, calling abort()
 // ---- rDebug more syslog-like logging (is also upcomming with Qt5+6) --------
-# define rDebug     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).debug
-# define rInfo      rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).info
-# define rNote      rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).note
-# define rWarning   rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).warning
-# define rError     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).error
-# define rCritical  rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).critical
-# define rFatal     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).fatal
-# define rEmergency rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).emergency
-# define rAlert     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).emergency // alias
-# define rSystem    rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).error // alias
+# define rDebug     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).debug     // syslog 7
+# define rInfo      rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).info      // syslog 6
+# define rNote      rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).note      // syslog 5
+# define rWarning   rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).warning   // syslog 4
+# define rError     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).error     // syslog 3
+# define rCritical  rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).critical  // syslog 2
+# define rFatal     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).fatal     // syslog 1 + break down application, calling abort() to be compatible with qFatal
+# define rEmergency rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).emergency // syslog 0 + break down application, calling abort()
+/* --- aliases: */
+# define rAlert     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).emergency // syslog 0 alias ( + break down ... )
+# define rSystem    rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).error     // another syslog 3 alias
 #endif
 
 
