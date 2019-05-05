@@ -1,0 +1,2 @@
+Sample and Demo code.
+This is showing how to use it in a minimalistic Qt application which aside supports Signal/Slot
