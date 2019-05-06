@@ -27,6 +27,15 @@
  * License is compatible with GPL and LGPL
  */ 
  
+#include <QtGlobal>  // for statements like if (QT_VERSION >= 0x050000)
+#if defined(QT_VERSION) && (QT_VERSION>=0x050000)
+//#    error "QT5"
+#elif defined(QT_VERSION) && (QT_VERSION>=0x040000)
+//#    error "QT4"
+#else
+#    error "please tell me, how to access system paths"
+#endif
+
 #include <QtGlobal>
 #include <QDebug>
 #include <QByteArray>
@@ -42,20 +51,34 @@
 
 void to_xDebug( rDebugLevel::rMsgType Level, const QString& msg )
 {
+  #pragma GCC diagnostic push
   switch(Level)
   {
+    #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
     case rDebugLevel::rMsgType::Emergency    : /*0*/
-    case rDebugLevel::rMsgType::Alert        : /*1*/ qFatal( msg.toLocal8Bit().constData() ); //break; Will ans shall break the app via abort()
+    case rDebugLevel::rMsgType::Alert        : /*1*/ qFatal( "%s", msg.toLocal8Bit().constData() ); //break; Will and shall break the app via abort()
     case rDebugLevel::rMsgType::Critical     : /*2*/
-    case rDebugLevel::rMsgType::Error        : /*3*/ qCritical( msg.toLocal8Bit().constData() ); break;
+    case rDebugLevel::rMsgType::Error        : /*3*/ qCritical( "%s", msg.toLocal8Bit().constData() ); break;
 #if !defined( QT_NO_WARNING_OUTPUT ) // suppression of WARNING and HIGHER
-    case rDebugLevel::rMsgType::Warning      : /*4*/ qWarning( msg.toLocal8Bit().constData() ); break;
+    case rDebugLevel::rMsgType::Warning      : /*4*/ qWarning( "%s", msg.toLocal8Bit().constData() ); break;
+    #if defined(QT_VERSION) && (QT_VERSION>=0x050000)
     case rDebugLevel::rMsgType::Notice       : /*5*/ qDebug().noquote() << msg; break;
+    #elif defined(QT_VERSION) && (QT_VERSION>=0x040000)
+    case rDebugLevel::rMsgType::Notice       : /*5*/ qDebug() << msg; break;
+    #endif
 # if !defined( QT_NO_INFO_OUTPUT ) // suppression of INFO and HIGHER
+    #if defined(QT_VERSION) && (QT_VERSION>=0x050000)
     case rDebugLevel::rMsgType::Informational: /*6*/ qDebug().noquote() << msg; break;
+    #elif defined(QT_VERSION) && (QT_VERSION>=0x040000)
+    case rDebugLevel::rMsgType::Informational: /*6*/ qDebug() << msg; break;
+    #endif
 # if !defined( QT_NO_DEBUG_OUTPUT ) // suppression of DEBUG (and higher, but there is no higher)
 #  if !defined( QT_NO_DEBUG ) // in release builds, we always suppress DEBUG type messages
+    #if defined(QT_VERSION) && (QT_VERSION>=0x050000)
     case rDebugLevel::rMsgType::Debug        : /*7*/ qDebug().noquote() << msg; break;
+    #elif defined(QT_VERSION) && (QT_VERSION>=0x040000)
+    case rDebugLevel::rMsgType::Debug        : /*7*/ qDebug() << msg; break;
+    #endif
 #  endif // !defined( QT_NO_DEBUG ) // in release builds, we always suppress DEBUG type messages
 # endif // !defined( QT_NO_DEBUG_OUTPUT ) // suppression of DEBUG (and higher, but there is no higher)
 # endif // !defined( QT_NO_INFO_OUTPUT ) // suppression of INFO and HIGHER
@@ -68,6 +91,7 @@ void to_xDebug( rDebugLevel::rMsgType Level, const QString& msg )
   {  std::abort();  // abort Critical, Error, Warning to fail early
   }
 # endif
+#pragma GCC diagnostic pop
 }
 
 
@@ -87,7 +111,11 @@ void to_xDebug( rDebugLevel::rMsgType Level, const QString& msg )
 #endif
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
-static bool SkipOutputByPreprocessor( rDebugLevel::rMsgType Level )
+static bool SkipOutputByPreprocessor( rDebugLevel::rMsgType
+#if defined( QT_NO_DEBUG )
+                                      Level
+#endif
+                                    )
 {
 #   if defined( QT_NO_WARNING_OUTPUT ) // suppression of WARNING and HIGHER
     if( Level >= rDebugLevel::rMsgType::Warning ) return true;
@@ -642,7 +670,11 @@ rDebugBase& rDebugBase::operator<<( const QString & str )
 
 rDebugBase& rDebugBase::operator<<( const QStringRef & str )
 {
+  #if defined(QT_VERSION) && (QT_VERSION>=0x050000)
   mMsgStream << str;
+  #elif defined(QT_VERSION) && (QT_VERSION>=0x040000)
+  mMsgStream << str.toString();
+  #endif
   return *this;
 }
 
