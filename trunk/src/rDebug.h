@@ -138,6 +138,10 @@ public:
   static void setMaxLevel( rDebugLevel::rMsgType MaxLevel );
   void signal_line( const FileLineFunc_t& CodeLocation, const QDateTime& Time, rDebugLevel::rMsgType Level, uint64_t LogId, const QString& line );
 
+public slots:
+  void sig_setMaxLevel( rDebugLevel::rMsgType MaxLevel ) {setMaxLevel(MaxLevel);}
+  void sig_setMaxLevel( int MaxLevel ) {setMaxLevel(static_cast<rDebugLevel::rMsgType>(MaxLevel));}
+
 signals:
   void sig_logline( const FileLineFunc_t& CodeLocation, const QDateTime& Time, int Level, uint64_t LogId, const QString& line );
 
