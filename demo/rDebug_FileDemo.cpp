@@ -1,4 +1,4 @@
-#include "rDebug_CLIDemo.h"
+#include "rDebug_FileDemo.h"
 
 #include <QtGlobal>  // for statements like if (QT_VERSION >= 0x050000)
 #if defined(QT_VERSION) && (QT_VERSION>=0x050000)
