@@ -1,5 +1,5 @@
-#ifndef RDEBUG_CLIDEMO_H
-#define RDEBUG_CLIDEMO_H
+#ifndef RDEBUG_FILEDEMO_H
+#define RDEBUG_FILEDEMO_H
 
 #include <QObject>
 #include <QTextStream>
@@ -94,4 +94,4 @@ private:
 };
 
 
-#endif // RDEBUG_CLIDEMO_H
+#endif // RDEBUG_FILEDEMO_H
