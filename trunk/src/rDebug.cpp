@@ -54,10 +54,10 @@ void to_xDebug( rDebugLevel::rMsgType Level, const QString& msg )
   #pragma GCC diagnostic push
   switch(Level)
   {
-    #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
-    case rDebugLevel::rMsgType::Emergency    : /*0*/
+    #pragma GCC diagnostic ignored "-Wimplicit-fallthrough=2"
+    case rDebugLevel::rMsgType::Emergency    : /*0*/ // intentionally fallthrough
     case rDebugLevel::rMsgType::Alert        : /*1*/ qFatal( "%s", msg.toLocal8Bit().constData() ); //break; Will and shall break the app via abort()
-    case rDebugLevel::rMsgType::Critical     : /*2*/
+    case rDebugLevel::rMsgType::Critical     : /*2*/ // intentionally fallthrough
     case rDebugLevel::rMsgType::Error        : /*3*/ qCritical( "%s", msg.toLocal8Bit().constData() ); break;
 #if !defined( QT_NO_WARNING_OUTPUT ) // suppression of WARNING and HIGHER
     case rDebugLevel::rMsgType::Warning      : /*4*/ qWarning( "%s", msg.toLocal8Bit().constData() ); break;
@@ -387,6 +387,7 @@ bool rDebug_Filewriter::oversized( QFile& openedFile )
 
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+rDebugLevel::rMsgType rDebugBase::mMaxLevel = SYSLOG_LEVEL_MAX;
 
 
 rDebugBase::rDebugBase(const char *file, int line, const char* func, rDebugLevel::rMsgType Level, uint64_t LogId)
@@ -411,6 +412,11 @@ rDebugBase::~rDebugBase()
 }
 
 
+void rDebugBase::setMaxLevel(rDebugLevel::rMsgType MaxLevel)
+{
+  rDebugBase::mMaxLevel = MaxLevel;
+}
+
 
 void rDebugBase::output( rDebugLevel::rMsgType currLevel )
 {
@@ -427,6 +433,9 @@ void rDebugBase::output( rDebugLevel::rMsgType currLevel )
 void rDebugBase::QDebugBackendWriter( rDebugLevel::rMsgType currLevel )
 {
   if( rDebug_GlobalLevel::get() < currLevel )
+    return;
+
+  if( rDebugBase::mMaxLevel < currLevel )
     return;
 
   if( SkipOutputByPreprocessor( currLevel ) )

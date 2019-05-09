@@ -83,7 +83,7 @@
 
 
 // -----------------------
-// this is controlling the gloabl Message filtering by a globa level,
+// this is controlling the gloabl Message filtering by a global level,
 // independend from filtering by each sink.
 // usage:
 //    rDebug_GlobalLevel globalLogLevel( rDebugLevel::rMsgType::All );
@@ -91,6 +91,15 @@
 //    ...
 //    rDebug_GlobalLevel globalLogLevel( rDebugLevel::rMsgType::Emergency );
 //    rDebug_GlobalLevel globalLogLevel( rDebugLevel::rMsgType::Silent );
+//
+// note:
+// rDebug_Signaller and rDebug_Filewriter, as well as rDebugBase have their own, sink-specific MaxLevel
+//    rDebug_Signaller::setMaxLevel(n)
+//    rDebug_Filewriter::setMaxLevel(n)
+//    rDebugBase::setMaxLevel(n)
+// which are checked, after a message passed a rDebug_GlobalLevel::set(m) set value. So each of the 3
+// sinks can reduce verbosity idividually, while all together can obey an common global level of
+// verbosity.
 // -----------------------
 class rDebug_GlobalLevel
 {
@@ -110,7 +119,7 @@ private:
 // -----------------------
 class rDebugBase;
 // -----------------------
-// bind Qts Signal-Slot system as one sink to the logging
+// bind Qt's Signal-Slot system as one sink to the logging
 // note:
 //    - there is always only ONE sink connected here. To use multiple sinks, add multiple Slots to the signal
 //    - to filter by level, use setMaxLevel( rDebugLevel::rMsgType::xxxx ), don't forget the rDebug_GlobalLevel
@@ -126,7 +135,7 @@ class rDebug_Signaller : public QObject
 public:
   rDebug_Signaller(rDebugLevel::rMsgType MaxLevel = rDebugLevel::rMsgType::Informational);
   virtual ~rDebug_Signaller();
-  void setMaxLevel( rDebugLevel::rMsgType MaxLevel );
+  static void setMaxLevel( rDebugLevel::rMsgType MaxLevel );
   void signal_line( const FileLineFunc_t& CodeLocation, const QDateTime& Time, rDebugLevel::rMsgType Level, uint64_t LogId, const QString& line );
 
 signals:
@@ -146,10 +155,10 @@ class rDebug_Filewriter
 public:
   rDebug_Filewriter(const QString& fileName, rDebugLevel::rMsgType MaxLevel = rDebugLevel::rMsgType::Informational, qint16 MaxBackups=2 , qint64 MaxSize=0x100000);
   virtual ~rDebug_Filewriter();
-  void setMaxLevel( rDebugLevel::rMsgType MaxLevel );
+  static void setMaxLevel( rDebugLevel::rMsgType MaxLevel );
   void setMaxSize( qint64 MaxSize=0x100000 );
   void setMaxBackups( qint16 MaxBackups );
-  void enableCodeLocations(bool enable);
+  static void enableCodeLocations(bool enable);
   void write_file( const FileLineFunc_t& CodeLocation, const QDateTime& Time, rDebugLevel::rMsgType Level, uint64_t LogId, const QString& line );
   void write_file_raw(const FileLineFunc_t& CodeLocation, const QDateTime& Time, rDebugLevel::rMsgType Level, uint64_t LogId, const QString& line);
 
@@ -231,8 +240,7 @@ public:
   rDebugBase& fatal(    const char *msg, ... );
 
 public:
-  int verbosity() const;
-  void setVerbosity(int v);
+  static void setMaxLevel(rDebugLevel::rMsgType MaxLevel);
   static QString getLevelName( rDebugLevel::rMsgType Level );
   static QString getDateTimeStr(const QDateTime& Time);
   static QString getLogIdStr(uint64_t LogId, int FormatLen=8);
@@ -247,6 +255,7 @@ private:
   void QFileBackendWriter(   rDebugLevel::rMsgType currLevel );
 
 private:
+  static rDebugLevel::rMsgType mMaxLevel;
   int         mBase;
   FileLineFunc_t mFileLineFunc;
   rDebugLevel::rMsgType    mLevel;

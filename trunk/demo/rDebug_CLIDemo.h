@@ -20,7 +20,8 @@ public:
       , m_MaxLogLevel(MaxLogLevel)
       , m_JobName(JobName)
     {
-      rDebug_GlobalLevel::set(m_MaxLogLevel);
+    //rDebug_GlobalLevel::set(m_MaxLogLevel);
+      rDebugBase::setMaxLevel(m_MaxLogLevel);
     }
 
 
