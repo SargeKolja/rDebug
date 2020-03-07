@@ -42,6 +42,10 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QDir>
+#include <QFile>
+#include <QEvent>
+#include <QMetaEnum> /// Gives human-readable event type information.
+#include <QTextStream>
 #include <stdio.h>
 #include <stdarg.h>  // va_list
 
@@ -805,6 +809,44 @@ rDebugBase&rDebugBase::operator<<(const QRect& d)
 {
   mMsgStream << "QRect(" << d.x() << "," << d.y() << "/" << d.width() << "x" << d.height() << ")";
   return maybeSpace();
+}
+
+
+rDebugBase&rDebugBase::operator<<( const QDir& d )
+{
+  mMsgStream << d.absolutePath();
+  return maybeSpace();
+}
+
+
+rDebugBase&rDebugBase::operator<<( const QFileInfo& f )
+{
+  mMsgStream << f.absoluteFilePath();
+  return maybeSpace();
+}
+
+
+/// Gives human-readable event type information.
+rDebugBase& rDebugBase::operator<<( const QEvent* evp )
+{
+    static int eventEnumIndex = QEvent::staticMetaObject.indexOfEnumerator( "Type" );
+    this->operator<<( "QEvent(" );
+    if( evp )
+    {
+      QString name = QEvent::staticMetaObject.enumerator(eventEnumIndex).valueToKey( evp->type() );
+      if( !name.isEmpty() )
+      { this->operator<<( name );
+      }
+      else
+      { this->operator<<( evp->type() );
+      }
+   }
+   else
+   {
+     this->operator<<( static_cast<const void*>(evp) );
+   }
+   this->operator<<( ")" );
+   return maybeSpace();
 }
 
 
