@@ -39,6 +39,8 @@
 #include <QSize>
 #include <QRect>
 #include <QFile>
+#include <QDir>
+#include <QFileInfo>
 
 #include "rDebugLevel.h"
 #include "rDebugCodeloc.h"
@@ -229,6 +231,9 @@ public:
   rDebugBase& operator<<( const QPoint& d );
   rDebugBase& operator<<( const QSize& d );
   rDebugBase& operator<<( const QRect& d );
+  rDebugBase& operator<<( const QDir& d );
+  rDebugBase& operator<<( const QFileInfo& f );
+  rDebugBase& operator<<( const QEvent* evp ); /// Gives human-readable event type information.
 
   // Emergency / Alert / Critical / Error / Warning / Notice / Informational / Debug
   rDebugBase& debug(    uint64_t LogId=0, const char *msg = nullptr, ... );
