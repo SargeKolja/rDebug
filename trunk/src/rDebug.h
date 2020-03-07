@@ -169,6 +169,7 @@ public:
   static void enableCodeLocations(bool enable);
   void write_file( const FileLineFunc_t& CodeLocation, const QDateTime& Time, rDebugLevel::rMsgType Level, uint64_t LogId, const QString& line );
   void write_file_raw(const FileLineFunc_t& CodeLocation, const QDateTime& Time, rDebugLevel::rMsgType Level, uint64_t LogId, const QString& line);
+  void move( const QString& NewfileName ); // moving a running log into other location
 
 protected:
   void write_wrap( const char* Location, const char* Reason );
@@ -180,6 +181,7 @@ private:
   bool oversized( QFile& openedFile );
   void rotate(void);
   void rotate_ondemand(void);
+  bool appendFiles( const QString& SourceFile, const QString& DestinationFile );
 
 private:
   static rDebug_Filewriter*    pFilewriter;
