@@ -29,11 +29,11 @@
  
 #include <QtGlobal>  // for statements like if (QT_VERSION >= 0x050000)
 #if defined(QT_VERSION) && (QT_VERSION>=0x050000)
-//#    error "QT5"
+// --
 #elif defined(QT_VERSION) && (QT_VERSION>=0x040000)
-//#    error "QT4"
+// --
 #else
-#    error "please tell me, how to access system paths"
+#    error "not ported to this Qt version"
 #endif
 
 #include <QtGlobal>
@@ -318,6 +318,69 @@ void rDebug_Filewriter::close(const char* Location, const char* Reason)
   write_wrap( Location, Reason );
   mpLogfile->close();
   mpLogfile = nullptr;
+}
+
+
+bool rDebug_Filewriter::appendFiles( const QString& SourceFile, const QString& DestinationFile )
+{
+    QFile SourceF( SourceFile );
+    bool okay=false;
+
+    if( SourceF.open( QIODevice::ReadOnly | QIODevice::Text ) )
+    {
+        QTextStream SrcStream( &SourceF );
+        //SrcStream.setDevice( &SourceF );
+
+        QFile DestinF( DestinationFile );
+        if( DestinF.open( QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append ) )
+        {
+            QTextStream DstStream( &DestinF );
+            //DstStream.setDevice( &DestinF );
+            while( ! SrcStream.atEnd() )
+            {
+                QString line = SrcStream.readLine();
+                DstStream << line << "\n";
+                okay=true;
+            }
+        }
+    }
+    return okay;
+}
+
+
+void rDebug_Filewriter::move( const QString& NewfileName )
+{
+    const char *Who = "LogMove";
+
+    QFileInfo OldLogFile( mpLogfile->fileName() );
+    QFileInfo NewLogFile( NewfileName );
+    QString OldLogFileName( QDir::cleanPath( OldLogFile.absoluteFilePath() ) );
+    QString NewLogFileName( QDir::cleanPath( NewLogFile.absoluteFilePath() ) );
+
+    const QString CloseReason( QString("~~~~~~~~~~ logfile moved to new location (%1) ~~~~~~~~~~").arg(NewLogFileName) );
+    const QString OpenReason(  QString("~~~~~~~~~~ logfile moved to new location from (%1) ~~~~~~~~~~").arg(OldLogFileName) );
+
+    if( !mpLogfile )
+    {
+        open( NewfileName, Who, OpenReason.toUtf8().constData() );
+    }
+    else
+    {
+        QString NewLogPathName( QDir::cleanPath( NewLogFile.absolutePath() ) );
+
+        if( OldLogFileName != NewLogFileName )
+        {
+            QDir dummy;
+            dummy.mkpath( NewLogPathName );
+            close( Who, CloseReason.toUtf8().constData() );
+
+            if( appendFiles( OldLogFileName, NewLogFileName ) )
+            {
+                QFile::remove( OldLogFileName );
+            }
+            open( NewLogFileName, Who, OpenReason.toUtf8().constData() );
+        }
+    }
 }
 
 
