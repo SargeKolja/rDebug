@@ -67,6 +67,10 @@
 # define qCritical  rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).critical
 # define qSystem    rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).error
 # define qFatal     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).fatal  // break down application, calling abort()
+
+// --- new: at least basic Qt4 support:
+#endif
+
 // ---- rDebug more syslog-like logging (is also upcomming with Qt5+6) --------
 # define rDebug     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).debug     // syslog 7
 # define rInfo      rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).info      // syslog 6
@@ -79,7 +83,7 @@
 /* --- aliases: */
 # define rAlert     rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).emergency // syslog 0 alias ( + break down ... )
 # define rSystem    rDebugBase( __FILE__, __LINE__, __PRETTY_FUNCTION__ ).error     // another syslog 3 alias
-#endif
+// --- old: only smart Qt5 support: #endif
 
 
 // -----------------------
