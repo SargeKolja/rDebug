@@ -112,7 +112,7 @@ void to_xDebug( rDebugLevel::rMsgType Level, const QString& msg )
 /* =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 static bool SkipOutputByPreprocessor( rDebugLevel::rMsgType
-#if defined( QT_NO_DEBUG )
+#if !defined( QT_NO_WARNING_OUTPUT ) && !defined( QT_NO_INFO_OUTPUT ) && !defined( QT_NO_DEBUG_OUTPUT ) && !defined( QT_NO_DEBUG )
                                       Level
 #endif
                                     )
