@@ -255,6 +255,10 @@ public:
   static QString getDateTimeStr(const QDateTime& Time);
   static QString getLogIdStr(uint64_t LogId, int FormatLen=8);
 
+  inline rDebugBase &nospace()    { mSpace = false;                   return *this; }
+  inline rDebugBase &space()      { mSpace = true; mMsgStream << ' '; return *this; }
+  inline rDebugBase &maybeSpace() { if( mSpace )   mMsgStream << ' '; return *this; }
+
 protected:
   void output( rDebugLevel::rMsgType currLevel );
   void writer(rDebugLevel::rMsgType Level, uint64_t LogId, bool withLogId, const char* msg, va_list valist );
@@ -275,6 +279,7 @@ private:
   QString     mMsgBuffer;
   QTextStream mMsgStream;
   bool        mWithLogId;
+  bool        mSpace;
 };
 
 typedef rDebugBase& (*rDebugBaseManipulator)( rDebugBase& );// manipulator function

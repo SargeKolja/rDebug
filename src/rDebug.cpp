@@ -463,6 +463,7 @@ rDebugBase::rDebugBase(const char *file, int line, const char* func, rDebugLevel
   , mMsgBuffer("")
   , mMsgStream(&mMsgBuffer)
   , mWithLogId(SYSLOG_WITH_NUMERIC_8DIGITS_ID)
+  , mSpace(true)
 {}
 
 
@@ -520,6 +521,9 @@ void rDebugBase::QDebugBackendWriter( rDebugLevel::rMsgType currLevel )
 
   WholeMsg.flush();
 
+  if( mStringDevice.length()>1 && mStringDevice.endsWith(' ') )
+      mStringDevice.chop(1);
+
   to_xDebug( mLevel, mStringDevice );
 }
 
@@ -532,7 +536,10 @@ void rDebugBase::QSignalBackendWriter( rDebugLevel::rMsgType currLevel )
     return;
 
   if( rDebug_Signaller::pSignaller )
-  {   rDebug_Signaller::pSignaller->signal_line( mFileLineFunc, mTime, mLevel, mLogId, mMsgBuffer );
+  {
+      if( mMsgBuffer.length()>1 && mMsgBuffer.endsWith(' ') )
+          mMsgBuffer.chop(1);
+      rDebug_Signaller::pSignaller->signal_line( mFileLineFunc, mTime, mLevel, mLogId, mMsgBuffer );
   }
 }
 
@@ -545,7 +552,10 @@ void rDebugBase::QFileBackendWriter( rDebugLevel::rMsgType currLevel )
     return;
 
   if( rDebug_Filewriter::pFilewriter )
-  {   rDebug_Filewriter::pFilewriter->write_file( mFileLineFunc, mTime, mLevel, mLogId, mMsgBuffer );
+  {
+      if( mMsgBuffer.length()>1 && mMsgBuffer.endsWith(' ') )
+          mMsgBuffer.chop(1);
+      rDebug_Filewriter::pFilewriter->write_file( mFileLineFunc, mTime, mLevel, mLogId, mMsgBuffer );
   }
 }
 
@@ -630,21 +640,21 @@ rDebugBase& rDebugBase::integerBase( int base )
 rDebugBase& rDebugBase::operator<<( QChar ch )
 {
   mMsgStream << ch;
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( bool flg )
 {
   mMsgStream << ((flg) ? "true" : "false");
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( char ch )
 {
   mMsgStream << ch;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -652,7 +662,7 @@ rDebugBase& rDebugBase::operator<<( signed short num )
 {
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << num;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -660,7 +670,7 @@ rDebugBase& rDebugBase::operator<<( unsigned short num )
 {
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << num;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -668,7 +678,7 @@ rDebugBase& rDebugBase::operator<<( signed int num )
 {
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << num;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -676,7 +686,7 @@ rDebugBase& rDebugBase::operator<<( unsigned int num )
 {
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << num;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -684,7 +694,7 @@ rDebugBase& rDebugBase::operator<<( signed long lnum )
 {
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << lnum;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -692,7 +702,7 @@ rDebugBase& rDebugBase::operator<<( unsigned long lnum )
 {
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << lnum;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -700,7 +710,7 @@ rDebugBase& rDebugBase::operator<<( qint64 i64 )
 {
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << i64;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -708,35 +718,35 @@ rDebugBase& rDebugBase::operator<<( quint64 i64 )
 {
   mMsgStream.setIntegerBase(mBase);
   mMsgStream << i64;
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( float flt )
 {
   mMsgStream << flt;
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( double dbl )
 {
   mMsgStream << dbl;
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( const char * ptr )
 {
   mMsgStream << ((ptr)?ptr:"(nullptr)");
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( const QString & str )
 {
   mMsgStream << str;
-  return *this;
+  return maybeSpace();
 }
 
 
@@ -747,54 +757,54 @@ rDebugBase& rDebugBase::operator<<( const QStringRef & str )
   #elif defined(QT_VERSION) && (QT_VERSION>=0x040000)
   mMsgStream << str.toString();
   #endif
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( const QLatin1String & str )
 {
   mMsgStream << str;
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( const QByteArray & ba )
 {
   mMsgStream << ba;
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase& rDebugBase::operator<<( const void * vptr )
 {
   mMsgStream << "0x" << hex << vptr;
-  return *this;
+  return maybeSpace();
 }
 
 rDebugBase& rDebugBase::operator<<(const QTextStream& qts)
 {
   mMsgStream << qts.string();
-  return *this;
+  return maybeSpace();
 }
 
 rDebugBase&rDebugBase::operator<<(const QPoint& d)
 {
   mMsgStream << "@(" << d.x() << "," << d.y() << ")";
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase&rDebugBase::operator<<(const QSize& d)
 {
   mMsgStream << "@(" << d.width() << "x" << d.height() << ")";
-  return *this;
+  return maybeSpace();
 }
 
 
 rDebugBase&rDebugBase::operator<<(const QRect& d)
 {
-  mMsgStream << "QRect(" << d.x() << "," << d.y() << " " << d.width() << "x" << d.height() << ")";
-  return *this;
+  mMsgStream << "QRect(" << d.x() << "," << d.y() << "/" << d.width() << "x" << d.height() << ")";
+  return maybeSpace();
 }
 
 
