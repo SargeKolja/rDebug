@@ -175,6 +175,7 @@ public:
 
 protected:
   void write_wrap( const char* Location, const char* Reason );
+  void write_BOM();
 
 private:
   void open( const QString& fileName, const char* Location, const char* Reason );
