@@ -282,6 +282,9 @@ void rDebug_Filewriter::write_file_raw(const FileLineFunc_t& CodeLocation, const
     return;
 
   QTextStream WholeMsg( mpLogfile );
+  WholeMsg.setCodec("UTF-8");
+  WholeMsg.setAutoDetectUnicode(true);
+
   WholeMsg << QString("%1 [%2] %3, %4") \
                   .arg( rDebugBase::getDateTimeStr( Time ) ) \
                   .arg( rDebugBase::getLevelName( Level ) ) \
@@ -309,10 +312,23 @@ void rDebug_Filewriter::write_wrap(const char* Location, const char* Reason)
 }
 
 
+void rDebug_Filewriter::write_BOM()
+{
+  QTextStream Header( mpLogfile );
+  Header.setCodec("UTF-8");
+  Header.setGenerateByteOrderMark(true);
+  Header << QString("\n"); // without this, we don't get the BOM and would need to refactor write_wrap() to write the BOM in case of opening wrap only ...
+  Header.flush();
+}
+
+
 void rDebug_Filewriter::open(const QString& fileName, const char* Location, const char* Reason)
 {
   mpLogfile = new QFile(fileName);
+  bool newFile = ( 0==mpLogfile->size() );
   mpLogfile->open(QIODevice::Append | QIODevice::Text);
+  if(newFile)
+    write_BOM();
   write_wrap( Location, Reason );
 }
 
@@ -511,6 +527,9 @@ void rDebugBase::QDebugBackendWriter( rDebugLevel::rMsgType currLevel )
 
   QString     mStringDevice("");
   QTextStream WholeMsg( &mStringDevice );
+  WholeMsg.setCodec("UTF-8");
+  WholeMsg.setAutoDetectUnicode(true);
+
   if( mWithLogId )
       WholeMsg << QString("%1 [%2] %3, %4") \
                   .arg( getDateTimeStr( mTime ) ) \
